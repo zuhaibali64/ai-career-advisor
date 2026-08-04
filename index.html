@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Career Advisor — Chart your path</title>
+  <meta name="description" content="Enter your skills and get an AI-guided career path: matched roles, a learning roadmap, and a downloadable report." />
+
+  <!-- Fonts: Space Grotesk (display) + Inter (body) + JetBrains Mono (data/skill tags) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- jsPDF for client-side PDF report generation (no backend needed) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+  <script src="careerData.js" defer></script>
+  <script src="script.js" defer></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧭</text></svg>">
+</head>
+<body data-theme="dark">
+
+  <!-- Screen-reader live region for analysis/status announcements -->
+  <div id="srAnnounce" class="sr-only" aria-live="polite" role="status"></div>
+
+  <!-- Ambient backdrop: starfield canvas + gradient aurora, purely decorative -->
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <div class="aurora aurora--one" aria-hidden="true"></div>
+  <div class="aurora aurora--two" aria-hidden="true"></div>
+
+  <!-- ============ HEADER / NAV ============ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="#top" class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="28" height="28" fill="none">
+            <circle cx="16" cy="16" r="14" stroke="url(#brandGrad)" stroke-width="2"/>
+            <path d="M16 8 L20 16 L16 24 L12 16 Z" fill="url(#brandGrad)"/>
+            <defs>
+              <linearGradient id="brandGrad" x1="0" y1="0" x2="32" y2="32">
+                <stop offset="0%" stop-color="#7C5CFF"/>
+                <stop offset="100%" stop-color="#3DDAD7"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </span>
+        <span class="brand-text">AI Career Advisor</span>
+      </a>
+
+      <nav class="main-nav" aria-label="Primary">
+        <a href="#advisor">Advisor</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#careers">Careers</a>
+      </nav>
+
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" aria-pressed="false">
+        <span class="theme-toggle-track">
+          <span class="theme-toggle-thumb">
+            <svg class="icon-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">Skills in. A path out.</p>
+        <h1 class="hero-title">
+          Tell us what you know.<br/>
+          <span class="text-gradient">We'll chart where it leads.</span>
+        </h1>
+        <p class="hero-sub">
+          AI Career Advisor reads your skill set and plots matched roles, the gaps worth closing,
+          and a study path to close them — like a constellation drawn from where you stand
+          to where you're headed.
+        </p>
+        <div class="hero-cta">
+          <a href="#advisor" class="btn btn-primary">
+            <span>Start charting</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a href="#how-it-works" class="btn btn-ghost">How it works</a>
+        </div>
+      </div>
+
+      <!-- Signature visual: animated constellation path, skill nodes -> role nodes -->
+      <div class="hero-visual" aria-hidden="true">
+        <svg id="heroConstellation" viewBox="0 0 520 420" width="100%" height="100%">
+          <defs>
+            <linearGradient id="pathGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#7C5CFF"/>
+              <stop offset="100%" stop-color="#3DDAD7"/>
+            </linearGradient>
+            <filter id="nodeGlow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- paths drawn via CSS stroke-dash animation -->
+          <path class="const-path" d="M60,340 C140,300 150,220 230,210" />
+          <path class="const-path" d="M60,340 C100,260 180,260 230,210" />
+          <path class="const-path" d="M230,210 C300,190 320,120 380,90" />
+          <path class="const-path" d="M230,210 C290,250 340,250 380,300" />
+          <path class="const-path" d="M380,90 C400,70 410,70 420,50" />
+
+          <!-- skill nodes (start) -->
+          <g class="const-node const-node--skill" transform="translate(60,340)">
+            <circle r="7" filter="url(#nodeGlow)"/>
+            <text x="-14" y="26">Python</text>
+          </g>
+          <!-- mid node -->
+          <g class="const-node const-node--mid" transform="translate(230,210)">
+            <circle r="9" filter="url(#nodeGlow)"/>
+            <text x="14" y="-14">You</text>
+          </g>
+          <!-- role nodes (destination) -->
+          <g class="const-node const-node--role" transform="translate(380,90)">
+            <circle r="7" filter="url(#nodeGlow)"/>
+            <text x="14" y="6">ML Engineer</text>
+          </g>
+          <g class="const-node const-node--role" transform="translate(380,300)">
+            <circle r="7" filter="url(#nodeGlow)"/>
+            <text x="14" y="6">Data Analyst</text>
+          </g>
+          <g class="const-node const-node--role" transform="translate(420,50)">
+            <circle r="5" filter="url(#nodeGlow)"/>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS (brief steps, real sequence so numbering is justified) ============ -->
+    <section class="how-it-works" id="how-it-works">
+      <div class="section-inner">
+        <ol class="steps">
+          <li class="step">
+            <span class="step-index">01</span>
+            <h3>Enter your skills</h3>
+            <p>List what you already know — languages, tools, frameworks, soft skills.</p>
+          </li>
+          <li class="step">
+            <span class="step-index">02</span>
+            <h3>Get matched instantly</h3>
+            <p>The advisor scores your input against real-world role profiles.</p>
+          </li>
+          <li class="step">
+            <span class="step-index">03</span>
+            <h3>Follow the roadmap</h3>
+            <p>Close the gaps with a staged, time-boxed learning path.</p>
+          </li>
+          <li class="step">
+            <span class="step-index">04</span>
+            <h3>Download your report</h3>
+            <p>Take the full analysis with you as a clean PDF.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ ADVISOR / INPUT DASHBOARD ============ -->
+    <section class="advisor" id="advisor">
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="eyebrow">The advisor</p>
+          <h2>What's in your toolkit?</h2>
+          <p class="section-sub">Add skills one at a time, or paste a comma-separated list. The more specific, the sharper the match.</p>
+        </div>
+
+        <div class="glass-panel advisor-panel">
+          <form id="skillForm" class="skill-form" autocomplete="off">
+            <div class="skill-input-row">
+              <label for="skillInput" class="sr-only">Add a skill</label>
+              <input
+                type="text"
+                id="skillInput"
+                name="skillInput"
+                placeholder="e.g. Python, SQL, Figma, Public Speaking…"
+                aria-describedby="skillHint"
+              />
+              <button type="submit" class="btn btn-primary btn-add">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                Add
+              </button>
+            </div>
+            <p id="skillHint" class="field-hint">Press Enter or comma to add a skill. Try “Python, Excel, Communication”.</p>
+
+            <!-- Quick-add suggestion chips -->
+            <div class="suggested-chips" id="suggestedChips" aria-label="Suggested skills">
+              <!-- populated by JS -->
+            </div>
+
+            <!-- Selected skills appear as tags -->
+            <div class="skill-tags" id="skillTags" aria-live="polite">
+              <!-- populated by JS -->
+            </div>
+
+            <div class="advisor-actions">
+              <button type="button" id="analyzeBtn" class="btn btn-primary btn-analyze" disabled>
+                <span class="btn-label">Analyze my skills</span>
+                <span class="btn-spinner" aria-hidden="true"></span>
+              </button>
+              <button type="button" id="clearBtn" class="btn btn-ghost">Clear all</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RESULTS DASHBOARD (hidden until analysis runs) ============ -->
+    <section class="results" id="results" hidden>
+
+      <!-- AI Recommendation summary -->
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="eyebrow">Recommendation</p>
+          <h2>Your strongest direction</h2>
+        </div>
+
+        <div class="glass-panel recommendation-panel" id="recommendationPanel">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <!-- Career suggestions -->
+      <div class="section-inner" id="careers">
+        <div class="section-head">
+          <p class="eyebrow">Matched roles</p>
+          <h2>Careers worth exploring</h2>
+          <p class="section-sub">Ranked by how closely your current skills align.</p>
+        </div>
+
+        <div class="career-grid" id="careerGrid">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <!-- Learning roadmap -->
+      <div class="section-inner" id="roadmap">
+        <div class="section-head">
+          <p class="eyebrow">Learning roadmap</p>
+          <h2>Your path, staged</h2>
+          <p class="section-sub">A sequence of focused stages — each one a star on the route to your top match.</p>
+        </div>
+
+        <div class="glass-panel roadmap-panel">
+          <svg id="roadmapLine" class="roadmap-line" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M20,30 C 250,5 350,55 500,30 S 750,5 980,30" />
+          </svg>
+          <ol class="roadmap-stages" id="roadmapStages">
+            <!-- populated by JS -->
+          </ol>
+        </div>
+      </div>
+
+      <!-- Skill gap chart -->
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="eyebrow">Gap analysis</p>
+          <h2>Where you stand vs. where you're headed</h2>
+        </div>
+        <div class="glass-panel gap-panel">
+          <div class="gap-chart" id="gapChart">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Download report -->
+      <div class="section-inner download-cta">
+        <div class="glass-panel download-panel">
+          <div class="download-text">
+            <h3>Take it with you</h3>
+            <p>Export this full analysis — recommendation, matched roles, roadmap and gap chart — as a polished PDF.</p>
+          </div>
+          <button id="downloadPdfBtn" class="btn btn-primary btn-download">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v9m0 0 3.5-3.5M9 11 5.5 7.5M3 13.5V15a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="btn-label">Download report (PDF)</span>
+            <span class="btn-spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty state hint (shown before first analysis) -->
+    <section class="empty-hint" id="emptyHint">
+      <div class="section-inner">
+        <div class="empty-card">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true"><circle cx="20" cy="20" r="18" stroke="url(#emptyGrad)" stroke-width="1.5" stroke-dasharray="4 4"/><path d="M20 12v8l5 5" stroke="url(#emptyGrad)" stroke-width="1.6" stroke-linecap="round"/><defs><linearGradient id="emptyGrad" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#7C5CFF"/><stop offset="1" stop-color="#3DDAD7"/></linearGradient></defs></svg>
+          <p>Add a few skills above and hit <strong>Analyze my skills</strong> — your dashboard appears here.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="site-footer">
+  <div class="section-inner footer-inner">
+    <p>AI Career Advisor — runs entirely in your browser. Nothing you enter leaves this page.</p>
+
+    <p class="footer-meta">
+      Built with HTML, CSS &amp; JavaScript · Deployed on GitHub Pages
+    </p>
+
+    <p>
+      Developed by Muhammad Zuhaib Ali
+    </p>
+
+    <p>
+      <a href="https://github.com/zuhaibali64" target="_blank">GitHub</a> |
+      <a href="https://www.linkedin.com/in/m-zuhaib-ali-0724952a3" target="_blank">LinkedIn</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+
+</html>
